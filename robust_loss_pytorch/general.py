@@ -72,10 +72,10 @@ def lossfun(x, alpha, scale, approximate=False, epsilon=1e-6):
   assert torch.is_tensor(alpha)
   assert alpha.dtype == x.dtype
   assert scale.dtype == x.dtype
-  assert (scale > 0).all()
+  torch._assert_async((scale > 0).all())
   if approximate:
     # `epsilon` must be greater than single-precision machine epsilon.
-    assert epsilon > np.finfo(np.float32).eps
+    torch._assert_async(epsilon > np.finfo(np.float32).eps)
     # Compute an approximate form of the loss which is faster, but innacurate
     # when x and alpha are near zero.
     b = torch.abs(alpha - 2) + epsilon
@@ -97,7 +97,7 @@ def lossfun(x, alpha, scale, approximate=False, epsilon=1e-6):
     loss_posinf = util.expm1_safe(0.5 * squared_scaled_x)
 
     # The loss when not in one of the above special cases.
-    machine_epsilon = torch.tensor(np.finfo(np.float32).eps).to(x)
+    machine_epsilon = torch.tensor(np.finfo(np.float32).eps, device=x.device)
     # Clamp |2-alpha| to be >= machine epsilon so that it's safe to divide by.
     beta_safe = torch.max(machine_epsilon, torch.abs(alpha - 2.))
     # Clamp |alpha| to be >= machine epsilon so that it's safe to divide by.

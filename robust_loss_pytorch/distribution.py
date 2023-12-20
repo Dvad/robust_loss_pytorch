@@ -117,7 +117,7 @@ def partition_spline_curve(alpha):
 def inv_partition_spline_curve(x):
   """The inverse of partition_spline_curve()."""
   x = torch.as_tensor(x)
-  assert (x >= 0).all()
+  torch._assert_async((x >= 0).all())
   alpha = torch.where(
       x < 8,
       0.5 * x + torch.where(x <= 4, 1.25 - torch.sqrt(1.5625 - x + .25 * x**2),
@@ -160,13 +160,13 @@ class Distribution():
       An approximation of log(Z(alpha)) accurate to within 1e-6
     """
     alpha = torch.as_tensor(alpha)
-    assert (alpha >= 0).all()
+    torch._assert_async((alpha >= 0).all())
     # Transform `alpha` to the form expected by the spline.
     x = partition_spline_curve(alpha)
     # Interpolate into the spline.
-    return cubic_spline.interpolate1d(x * self._spline_x_scale.to(x),
-                                      self._spline_values.to(x),
-                                      self._spline_tangents.to(x))
+    return cubic_spline.interpolate1d(x * self._spline_x_scale.to(x, non_blocking=True),
+                                      self._spline_values.to(x, non_blocking=True),
+                                      self._spline_tangents.to(x, non_blocking=True))
 
   def nllfun(self, x, alpha, scale):
     r"""Implements the negative log-likelihood (NLL).
@@ -198,8 +198,8 @@ class Distribution():
     x = torch.as_tensor(x)
     alpha = torch.as_tensor(alpha)
     scale = torch.as_tensor(scale)
-    assert (alpha >= 0).all()
-    assert (scale >= 0).all()
+    torch._assert_async((alpha >= 0).all())
+    torch._assert_async((scale >= 0).all())
     float_dtype = x.dtype
     assert alpha.dtype == float_dtype
     assert scale.dtype == float_dtype
@@ -237,8 +237,8 @@ class Distribution():
     """
     alpha = torch.as_tensor(alpha)
     scale = torch.as_tensor(scale)
-    assert (alpha >= 0).all()
-    assert (scale >= 0).all()
+    torch._assert_async((alpha >= 0).all())
+    torch._assert_async((scale >= 0).all())
     float_dtype = alpha.dtype
     assert scale.dtype == float_dtype
 
@@ -254,8 +254,8 @@ class Distribution():
 
       # Compute the likelihood of each sample under its target distribution.
       nll = self.nllfun(cauchy_sample,
-                        torch.as_tensor(alpha).to(cauchy_sample),
-                        torch.tensor(1).to(cauchy_sample))
+                        torch.as_tensor(alpha, device=cauchy_sample.device),
+                        torch.tensor(1, device=cauchy_sample.device))
 
       # Bound the NLL. We don't use the approximate loss as it may cause
       # unpredictable behavior in the context of sampling.
